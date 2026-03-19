@@ -18,20 +18,20 @@ export interface Chat {
 interface ChatStore {
   chats: Chat[];
   activeChatId: string | null;
-  totalMessages: number;
-  maxMessages: number;
   sidebarOpen: boolean;
   isStreaming: boolean;
 
-  createChat: () => string;
+  createChat: (id: string, title: string) => string;
   setActiveChat: (id: string) => void;
   addMessage: (chatId: string, role: 'user' | 'assistant', content: string) => void;
   updateLastAssistantMessage: (chatId: string, content: string) => void;
+  setMessages: (chatId: string, messages: Message[]) => void;
+  setChats: (chats: Chat[]) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
   setIsStreaming: (streaming: boolean) => void;
   getActiveChat: () => Chat | undefined;
-  canSendMessage: () => boolean;
+  reset: () => void;
 }
 
 const generateId = () => Math.random().toString(36).substring(2, 12);
@@ -39,16 +39,13 @@ const generateId = () => Math.random().toString(36).substring(2, 12);
 export const useChatStore = create<ChatStore>((set, get) => ({
   chats: [],
   activeChatId: null,
-  totalMessages: 0,
-  maxMessages: 10,
   sidebarOpen: true,
   isStreaming: false,
 
-  createChat: () => {
-    const id = generateId();
+  createChat: (id: string, title: string) => {
     const chat: Chat = {
       id,
-      title: 'New Chat',
+      title,
       messages: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -62,6 +59,16 @@ export const useChatStore = create<ChatStore>((set, get) => ({
 
   setActiveChat: (id) => set({ activeChatId: id }),
 
+  setMessages: (chatId, messages) => {
+    set((state) => ({
+      chats: state.chats.map((c) =>
+        c.id === chatId ? { ...c, messages } : c
+      ),
+    }));
+  },
+
+  setChats: (chats) => set({ chats }),
+
   addMessage: (chatId, role, content) => {
     set((state) => {
       const chats = state.chats.map((chat) => {
@@ -73,10 +80,7 @@ export const useChatStore = create<ChatStore>((set, get) => ({
           : chat.title;
         return { ...chat, messages, title, updatedAt: Date.now() };
       });
-      return {
-        chats,
-        totalMessages: role === 'user' ? state.totalMessages + 1 : state.totalMessages,
-      };
+      return { chats };
     });
   },
 
@@ -101,8 +105,5 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     const s = get();
     return s.chats.find((c) => c.id === s.activeChatId);
   },
-  canSendMessage: () => {
-    const s = get();
-    return s.totalMessages < s.maxMessages;
-  },
+  reset: () => set({ chats: [], activeChatId: null, isStreaming: false }),
 }));
