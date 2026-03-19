@@ -1,14 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Loader2 } from 'lucide-react';
 import { useChatStore } from '@/lib/chat-store';
+import { useAuth } from '@/lib/auth-context';
 import { streamMockResponse } from '@/lib/mock-ai';
+import { createDbChat, insertMessage, updateChatTitle, updateMessageContent, incrementMessageCount } from '@/lib/chat-db';
 
 export function ChatInput() {
   const [input, setInput] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { activeChatId, createChat, addMessage, updateLastAssistantMessage, isStreaming, setIsStreaming, canSendMessage, totalMessages, maxMessages } = useChatStore();
+  const { activeChatId, createChat, addMessage, updateLastAssistantMessage, isStreaming, setIsStreaming, setActiveChat } = useChatStore();
+  const { user, profile, role, refreshProfile } = useAuth();
 
-  const remaining = maxMessages - totalMessages;
+  const isAdmin = role === 'admin';
+  const maxMessages = 10;
+  const remaining = isAdmin ? Infinity : maxMessages - (profile?.message_count ?? 0);
+  const limitReached = !isAdmin && remaining <= 0;
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -17,29 +23,58 @@ export function ChatInput() {
     }
   }, [input]);
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const text = input.trim();
-    if (!text || isStreaming) return;
-
-    if (!canSendMessage()) return;
-
-    let chatId = activeChatId;
-    if (!chatId) {
-      chatId = createChat();
-    }
+    if (!text || isStreaming || !user || limitReached) return;
 
     setInput('');
-    addMessage(chatId, 'user', text);
-    setIsStreaming(true);
 
-    // Add empty assistant message
+    let chatId = activeChatId;
+
+    // Create chat in DB if needed
+    if (!chatId) {
+      const title = text.slice(0, 40) + (text.length > 40 ? '...' : '');
+      const dbId = await createDbChat(user.id, title);
+      if (!dbId) return;
+      chatId = createChat(dbId, title);
+    }
+
+    // Increment message count
+    await incrementMessageCount(user.id);
+    await refreshProfile();
+
+    // Insert user message in DB
+    addMessage(chatId, 'user', text);
+    await insertMessage(chatId, user.id, 'user', text);
+
+    // Update chat title if first message
+    const chat = useChatStore.getState().chats.find(c => c.id === chatId);
+    if (chat && chat.messages.length === 1) {
+      const title = text.slice(0, 40) + (text.length > 40 ? '...' : '');
+      await updateChatTitle(chatId, title);
+    }
+
+    setIsStreaming(true);
     addMessage(chatId, 'assistant', '');
 
+    // Insert placeholder assistant message to get ID
+    const assistantMsgId = await insertMessage(chatId, user.id, 'assistant', '');
+
+    let finalContent = '';
     await streamMockResponse(
-      (chunk) => updateLastAssistantMessage(chatId!, chunk),
-      () => setIsStreaming(false)
+      (chunk) => {
+        finalContent = chunk;
+        updateLastAssistantMessage(chatId!, chunk);
+      },
+      async () => {
+        setIsStreaming(false);
+        // Update assistant message content in DB
+        if (assistantMsgId) {
+          await updateMessageContent(assistantMsgId, finalContent);
+        }
+      }
     );
-  };
+  }, [input, isStreaming, user, limitReached, activeChatId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -47,8 +82,6 @@ export function ChatInput() {
       handleSend();
     }
   };
-
-  const limitReached = !canSendMessage();
 
   return (
     <div className="border-t border-border p-4">
@@ -90,10 +123,12 @@ export function ChatInput() {
               </button>
             </div>
             <div className="flex justify-between mt-2 px-1">
-              <p className="text-xs text-muted-foreground">
-                {remaining} message{remaining !== 1 ? 's' : ''} remaining
-              </p>
-              <p className="text-xs text-muted-foreground">
+              {!isAdmin && (
+                <p className="text-xs text-muted-foreground">
+                  {remaining} message{remaining !== 1 ? 's' : ''} remaining
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground ml-auto">
                 Shift+Enter for new line
               </p>
             </div>

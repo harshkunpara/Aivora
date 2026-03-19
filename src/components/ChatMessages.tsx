@@ -115,13 +115,7 @@ export function ChatMessages() {
             <button
               key={s}
               className="px-4 py-3 rounded-xl border border-border bg-secondary/50 text-sm text-secondary-foreground hover:bg-secondary transition-colors text-left"
-              onClick={() => {
-                const store = useChatStore.getState();
-                if (store.activeChatId && store.canSendMessage()) {
-                  store.addMessage(store.activeChatId, 'user', s);
-                  // trigger AI response via input handler
-                }
-              }}
+              onClick={() => {}}
             >
               {s}
             </button>

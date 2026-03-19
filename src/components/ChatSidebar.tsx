@@ -1,9 +1,34 @@
-import { Plus, MessageSquare, PanelLeftClose, Sparkles } from 'lucide-react';
+import { Plus, MessageSquare, PanelLeftClose, Sparkles, LogOut, Shield } from 'lucide-react';
 import { useChatStore } from '@/lib/chat-store';
+import { useAuth } from '@/lib/auth-context';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createDbChat, fetchChatMessages } from '@/lib/chat-db';
+import { useNavigate } from 'react-router-dom';
 
 export function ChatSidebar() {
-  const { chats, activeChatId, createChat, setActiveChat, sidebarOpen, toggleSidebar } = useChatStore();
+  const { chats, activeChatId, createChat, setActiveChat, sidebarOpen, toggleSidebar, setMessages } = useChatStore();
+  const { user, role, signOut } = useAuth();
+  const navigate = useNavigate();
+  const isAdmin = role === 'admin';
+
+  const handleNewChat = async () => {
+    if (!user) return;
+    const dbId = await createDbChat(user.id, 'New Chat');
+    if (dbId) {
+      createChat(dbId, 'New Chat');
+    }
+  };
+
+  const handleSelectChat = async (chatId: string) => {
+    setActiveChat(chatId);
+    const messages = await fetchChatMessages(chatId);
+    setMessages(chatId, messages);
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/');
+  };
 
   return (
     <AnimatePresence>
@@ -21,6 +46,12 @@ export function ChatSidebar() {
             <div className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
               <span className="font-display font-semibold text-foreground text-lg">Aivora</span>
+              {isAdmin && (
+                <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[10px] font-semibold uppercase tracking-wide">
+                  <Shield className="h-3 w-3" />
+                  Admin
+                </span>
+              )}
             </div>
             <button
               onClick={toggleSidebar}
@@ -33,7 +64,7 @@ export function ChatSidebar() {
           {/* New Chat */}
           <div className="p-3">
             <button
-              onClick={createChat}
+              onClick={handleNewChat}
               className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border border-border text-secondary-foreground hover:bg-secondary transition-colors text-sm font-medium"
             >
               <Plus className="h-4 w-4" />
@@ -46,7 +77,7 @@ export function ChatSidebar() {
             {chats.map((chat) => (
               <button
                 key={chat.id}
-                onClick={() => setActiveChat(chat.id)}
+                onClick={() => handleSelectChat(chat.id)}
                 className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-left transition-colors truncate ${
                   chat.id === activeChatId
                     ? 'bg-secondary text-foreground'
@@ -60,10 +91,17 @@ export function ChatSidebar() {
           </div>
 
           {/* Footer */}
-          <div className="p-3 border-t border-border">
-            <div className="text-xs text-muted-foreground text-center">
-              Aivora — Mock AI Mode
+          <div className="p-3 border-t border-border space-y-2">
+            <div className="text-xs text-muted-foreground truncate px-1">
+              {user?.email}
             </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
           </div>
         </motion.aside>
       )}
