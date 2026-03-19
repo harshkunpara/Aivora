@@ -50,9 +50,8 @@ export default function AuthPage() {
         className="w-full max-w-sm"
       >
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <Sparkles className="h-7 w-7 text-primary" />
-          <span className="font-display font-bold text-2xl text-foreground">Aivora</span>
-        </Link>
+         <span className="font-display font-bold text-2xl bg-gradient-to-r from-purple-400 via-violet-500 to-indigo-500 bg-clip-text text-transparent tracking-wide">Aivora</span>
+ </Link>
 
         <div className="rounded-2xl border border-border bg-card p-6">
           <h2 className="font-display font-semibold text-xl text-foreground mb-1 text-center">

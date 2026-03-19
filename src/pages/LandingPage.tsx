@@ -13,9 +13,10 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-primary" />
-          <span className="font-display font-bold text-xl">Aivora</span>
+        <div className="flex items-center">
+          <span className="font-display font-bold text-xl bg-gradient-to-r from-purple-400 via-violet-500 to-indigo-500 bg-clip-text text-transparent tracking-wide">
+  Aivora
+</span>
         </div>
         <Link
           to="/chat"
@@ -28,10 +29,6 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="max-w-4xl mx-auto text-center pt-24 pb-20 px-6">
         <motion.div {...fadeUp}>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border bg-secondary/50 text-xs text-muted-foreground mb-8">
-            <Sparkles className="h-3 w-3 text-primary" />
-            Powered by AI
-          </div>
           <h1 className="text-5xl sm:text-7xl font-display font-bold mb-6 leading-tight">
             Your Intelligent{' '}
             <span className="gradient-text">AI Assistant</span>
