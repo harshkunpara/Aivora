@@ -61,19 +61,18 @@ export function ChatInput() {
     const assistantMsgId = await insertMessage(chatId, user.id, 'assistant', '');
 
     let finalContent = '';
-    await streamMockResponse(
-      (chunk) => {
-        finalContent = chunk;
-        updateLastAssistantMessage(chatId!, chunk);
-      },
-      async () => {
-        setIsStreaming(false);
-        // Update assistant message content in DB
-        if (assistantMsgId) {
-          await updateMessageContent(assistantMsgId, finalContent);
-        }
-      }
-    );
+await streamMockResponse(
+  (chunk) => {
+    finalContent = chunk;
+    updateLastAssistantMessage(chatId!, chunk);
+  },
+  async () => {
+    setIsStreaming(false);
+    if (assistantMsgId) {
+      await updateMessageContent(assistantMsgId, finalContent);
+    }
+  }
+);
   }, [input, isStreaming, user, limitReached, activeChatId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

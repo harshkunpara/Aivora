@@ -8,6 +8,7 @@ import LandingPage from "./pages/LandingPage";
 import ChatPage from "./pages/ChatPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import PricingPage from "./pages/PricingPage";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="*" element={<NotFound />} />
+            <Route path="/pricing" element={<PricingPage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
